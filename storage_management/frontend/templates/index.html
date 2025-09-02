@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cold Storage Management Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+</head>
+<body>
+    <div class="background-overlay"></div>
+    
+    <div class="container">
+        <header class="header">
+            <h1>Pro-Temp Analytics</h1>
+            <div class="status-controls">
+                <div class="status-indicator">
+                    <span id="status-text">Inactive</span>
+                    <div class="status-dot" id="status-dot"></div>
+                </div>
+                <button id="toggle-monitoring" class="btn btn-primary">Start Monitoring</button>
+                <button id="clear-alerts" class="btn btn-secondary">Clear Alerts</button>
+            </div>
+        </header>
+
+        <div class="dashboard-tabs">
+            <div class="tab-buttons">
+                <button class="tab-btn active" data-tab="live">Live Dashboard</button>
+                <button class="tab-btn" data-tab="analytics">Analytics</button>
+                <button class="tab-btn" data-tab="alerts">Alerts</button>
+                <button class="tab-btn" data-tab="trends">Trends</button>
+            </div>
+
+            <!-- Live Dashboard Tab -->
+            <div class="tab-content active" id="live-tab">
+                <div class="metrics-grid" id="metrics-grid">
+                    <!-- Zone metrics will be populated dynamically -->
+                </div>
+                
+                <div class="charts-section">
+                    <h2>Real-time Status Gauges</h2>
+                    <div class="gauges-grid" id="gauges-grid">
+                        <!-- Gauge charts will be populated dynamically -->
+                    </div>
+                </div>
+
+                <div class="charts-section">
+                    <h2>Live Sensor Readings</h2>
+                    <div class="charts-row">
+                        <div class="chart-container">
+                            <div id="temp-chart"></div>
+                        </div>
+                        <div class="chart-container">
+                            <div id="humidity-chart"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="charts-section">
+                    <h2>System Overview</h2>
+                    <div class="charts-row">
+                        <div class="chart-container">
+                            <div id="zone-status-chart"></div>
+                        </div>
+                        <div class="chart-container">
+                            <div id="current-scatter-chart"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analytics Tab -->
+            <div class="tab-content" id="analytics-tab">
+                <div class="kpi-section">
+                    <h2>Key Performance Indicators</h2>
+                    <div class="kpi-grid" id="kpi-grid">
+                        <!-- KPI charts will be populated dynamically -->
+                    </div>
+                </div>
+
+                <div class="charts-section">
+                    <h2>Zone Compliance Analysis</h2>
+                    <div class="zone-donuts" id="zone-donuts">
+                        <!-- Zone donut charts will be populated dynamically -->
+                    </div>
+                </div>
+
+                <div class="charts-section">
+                    <h2>Advanced Analytics</h2>
+                    <div class="charts-row">
+                        <div class="chart-container">
+                            <div id="radar-chart"></div>
+                        </div>
+                        <div class="chart-container">
+                            <div id="analytics-scatter-chart"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alerts Tab -->
+            <div class="tab-content" id="alerts-tab">
+                <div class="alerts-summary" id="alerts-summary">
+                    <!-- Alert summary will be populated dynamically -->
+                </div>
+                
+                <div class="alerts-list" id="alerts-list">
+                    <!-- Active alerts will be populated dynamically -->
+                </div>
+
+                <div class="charts-section">
+                    <h2>Alert Analysis</h2>
+                    <div class="charts-row">
+                        <div class="chart-container">
+                            <div id="alert-frequency-chart"></div>
+                        </div>
+                        <div class="chart-container">
+                            <div id="alert-severity-chart"></div>
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+
+            <!-- Trends Tab -->
+            <div class="tab-content" id="trends-tab">
+                <div class="time-range-selector">
+                    <label for="time-range">Time Range:</label>
+                    <select id="time-range">
+                        <option value="1">Last Hour</option>
+                        <option value="6">Last 6 Hours</option>
+                        <option value="24">Last 24 Hours</option>
+                        <option value="all">All Data</option>
+                    </select>
+                </div>
+
+                <div class="charts-section">
+                    <h2>Historical Trends</h2>
+                    <div class="charts-row">
+                        <div class="chart-container">
+                            <div id="historical-temp-chart"></div>
+                        </div>
+                        <div class="chart-container">
+                            <div id="historical-humidity-chart"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="charts-section">
+                    <h2>Statistical Analysis</h2>
+                    <div class="stats-table" id="stats-table">
+                        <!-- Statistical summary will be populated dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Threshold Configuration Modal -->
+        <div class="modal" id="threshold-modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Configure Thresholds</h2>
+                <form id="threshold-form">
+                    <div class="form-group">
+                        <label for="zone-select">Zone:</label>
+                        <select id="zone-select" name="zone">
+                            <!-- Options will be populated dynamically -->
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="temp-min">Min Temperature (°C):</label>
+                            <input type="number" id="temp-min" name="temp_min" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label for="temp-max">Max Temperature (°C):</label>
+                            <input type="number" id="temp-max" name="temp_max" step="0.1">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="humidity-min">Min Humidity (%):</label>
+                            <input type="number" id="humidity-min" name="humidity_min" step="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="humidity-max">Max Humidity (%):</label>
+                            <input type="number" id="humidity-max" name="humidity_max" step="1">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Update Thresholds</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>
